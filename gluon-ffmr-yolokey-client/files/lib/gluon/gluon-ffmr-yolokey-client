@@ -1,0 +1,20 @@
+#!/usr/bin/lua
+
+local uci = require('luci.model.uci').cursor()
+local gluon_util = require('gluon.util')
+
+local function upload_key(peer_address, hostname, local_key)
+    if os.execute(string.format(
+        "wget -T 120 -O /dev/null 'http://%s/yolokey/add/%s/%s'", peer_address, hostname, local_key
+    )) ~= 0 then
+        io.stderr:write('Error uploading key to ' .. peer_address .. '\n')
+        return false
+    end
+    return true
+end
+
+upload_key(
+    os.getenv("PEER_ADDRESS"),
+    uci:get_first("system", "system", "hostname") .. '__' .. gluon_util.node_id(),
+    os.getenv("LOCAL_KEY")
+)

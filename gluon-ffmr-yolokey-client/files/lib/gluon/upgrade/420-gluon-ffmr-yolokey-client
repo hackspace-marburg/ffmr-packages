@@ -1,0 +1,12 @@
+#!/usr/bin/lua
+
+local uci = require('luci.model.uci').cursor()
+
+uci:section('fastd', 'fastd', 'mesh_vpn',
+          {
+                  on_connect = '/lib/gluon/gluon-ffmr-yolokey-client'
+          }
+)
+
+uci:save('fastd')
+uci:commit('fastd')

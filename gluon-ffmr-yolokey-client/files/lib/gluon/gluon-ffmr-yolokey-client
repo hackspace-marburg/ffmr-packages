@@ -1,20 +1,57 @@
 #!/usr/bin/lua
 
 local uci = require('luci.model.uci').cursor()
-local gluon_util = require('gluon.util')
+local util = require('gluon.util')
+
+local function log(level, str)  -- FIXME: call syslog()
+    os.execute(
+        string.format('logger -p daemon.%s -t yolokey-client "%s"', level, str)
+    )
+end
+
+local function run(cmd)
+    local f = assert(io.popen(cmd, 'r'))
+    local s = assert(f:read('*a'))
+    f:close()
+    return s
+end
 
 local function upload_key(peer_address, hostname, local_key)
-    if os.execute(string.format(
-        "wget -T 120 -O /dev/null 'http://%s/yolokey/add/%s/%s'", peer_address, hostname, local_key
-    )) ~= 0 then
-        io.stderr:write('Error uploading key to ' .. peer_address .. '\n')
-        return false
+    local url = string.format(
+        'http://%s/yolokey/add/%s/%s',
+        peer_address, hostname, local_key
+    )
+    local ret = run(
+        string.format('wget -T 120 -O - -s "%s" 2>&1', url)
+    )
+
+    if string.find(ret, 'HTTP/1.1 409 Conflict') then
+        log(
+            'warn',
+            string.format('Key does already exist. Details: %s.\n', url)
+        )
+        return true
+    elseif string.find(
+        ret,
+        string.format('Info: Added %s fo %s', local_key, hostname)
+    ) then
+        log(
+            'info',
+            string.format(
+                'Successfully uploaded %s for %s.\n', local_key, hostname)
+        )
+        return true
     end
-    return true
+    
+    log(
+        'error',
+        string.format('Error uploading key by accessing %s.\n', url)
+    )
+    return false
 end
 
 upload_key(
-    os.getenv("PEER_ADDRESS"),
-    uci:get_first("system", "system", "hostname") .. '__' .. gluon_util.node_id(),
-    os.getenv("LOCAL_KEY")
+    os.getenv('PEER_ADDRESS'),
+    uci:get_first('system', 'system', 'hostname') .. '__' .. util.node_id(),
+    os.getenv('LOCAL_KEY')
 )

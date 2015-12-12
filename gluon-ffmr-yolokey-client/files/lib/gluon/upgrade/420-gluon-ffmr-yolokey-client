@@ -2,10 +2,15 @@
 
 local uci = require('luci.model.uci').cursor()
 
+uci:section('fastd', 'yolokey', 'yolokey_mesh_vpn',
+    {
+        key_uploaded = '0'  -- update shall trigger a key upload
+    }
+)
 uci:section('fastd', 'fastd', 'mesh_vpn',
-          {
-                  on_connect = '/lib/gluon/gluon-ffmr-yolokey-client'
-          }
+	{
+		on_connect = '/lib/gluon/gluon-ffmr-yolokey-client'
+	}
 )
 
 uci:save('fastd')

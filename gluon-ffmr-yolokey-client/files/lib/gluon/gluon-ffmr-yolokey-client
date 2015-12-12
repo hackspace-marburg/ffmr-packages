@@ -3,11 +3,25 @@
 local uci = require('luci.model.uci').cursor()
 local util = require('gluon.util')
 
+local uci_section = 'yolokey_' .. string.gsub(os.getenv('INTERFACE'), '-', '_')
+local last_log
+
 local function log(level, str)  -- FIXME: call syslog()
     os.execute(
         string.format('logger -p daemon.%s -t yolokey-client "%s"', level, str)
     )
+    last_log = level .. ': ' .. str
 end
+
+if uci:get_bool('fastd', uci_section, 'key_uploaded') then  -- save some resources
+    log(
+        'info',
+        'Yolokey has already uploaded a key for this interface. ' ..
+        'Reset with # uci set fastd.' .. uci_section .. '.key_uploaded=0'
+    )
+    os.exit(0)
+end
+
 
 local function run(cmd)
     local f = assert(io.popen(cmd, 'r'))
@@ -28,7 +42,7 @@ local function upload_key(peer_address, hostname, local_key)
     if string.find(ret, 'HTTP/1.1 409 Conflict') then
         log(
             'warn',
-            string.format('Key does already exist. Details: %s.\n', url)
+            string.format('Key does already exist. Details: %s.', url)
         )
         return true
     elseif string.find(
@@ -38,20 +52,29 @@ local function upload_key(peer_address, hostname, local_key)
         log(
             'info',
             string.format(
-                'Successfully uploaded %s for %s.\n', local_key, hostname)
+                'Successfully uploaded %s for %s.', local_key, hostname)
         )
         return true
     end
-    
+
     log(
         'error',
-        string.format('Error uploading key by accessing %s.\n', url)
+        string.format('Error uploading key by accessing %s.', url)
     )
     return false
 end
 
-upload_key(
+local upload_successful = upload_key(
     os.getenv('PEER_ADDRESS'),
     uci:get_first('system', 'system', 'hostname') .. '__' .. util.node_id(),
     os.getenv('LOCAL_KEY')
 )
+
+uci:section('fastd', 'yolokey', uci_section,
+    {
+        key_uploaded = (upload_successful and '1' or '0'),
+        status = last_log
+    }
+)
+uci:save('fastd')
+uci:commit('fastd')

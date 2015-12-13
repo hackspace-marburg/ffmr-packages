@@ -2,6 +2,8 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gluon-ffmr-yolokey-client
 PKG_VERSION:=1
+PKG_RELEASE:=1
+
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
@@ -34,4 +36,3 @@ define Package/gluon-ffmr-yolokey-client/install
 endef
 
 $(eval $(call BuildPackage,gluon-ffmr-yolokey-client))
-

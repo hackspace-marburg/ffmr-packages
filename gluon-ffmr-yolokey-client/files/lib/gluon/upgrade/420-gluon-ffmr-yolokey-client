@@ -9,7 +9,7 @@ uci:section('fastd', 'yolokey', 'yolokey_mesh_vpn',
 )
 uci:section('fastd', 'fastd', 'mesh_vpn',
 	{
-		on_connect = '/lib/gluon/gluon-ffmr-yolokey-client'
+		on_connect = '/lib/gluon/gluon-ffmr-yolokey-client.lua'
 	}
 )
 

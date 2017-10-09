@@ -1,6 +1,6 @@
 #!/usr/bin/lua
 
-local uci = require('luci.model.uci').cursor()
+local uci = require('simple-uci').cursor()
 local util = require('gluon.util')
 
 local uci_section = 'yolokey_' .. string.gsub(os.getenv('INTERFACE'), '-', '_')
@@ -36,19 +36,16 @@ local function upload_key(peer_address, hostname, local_key)
         peer_address, hostname, local_key
     )
     local ret = run(
-        string.format('wget -T 120 -O - -s "%s" 2>&1', url)
+        string.format('wget -T 120 -O - "%s" 2>&1', url)
     )
 
-    if string.find(ret, 'HTTP/1.1 409 Conflict') then
+    if string.find(ret, 'HTTP error 409') then
         log(
             'warn',
             string.format('Key does already exist. Details: %s.', url)
         )
         return true
-    elseif string.find(
-        ret,
-        string.format('Info: Added %s fo %s', local_key, hostname)
-    ) then
+    elseif string.find(ret, 'Download completed') then
         log(
             'info',
             string.format(
